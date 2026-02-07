@@ -306,6 +306,49 @@
             font-weight: 600;
         }
 
+        .units-choices {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .unit-choice {
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .unit-choice:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .unit-choice.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .unit-choice.correct {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .unit-choice.incorrect {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
         @media print {
             body {
                 background: white;
@@ -369,6 +412,7 @@
         <div style="text-align: center; margin-bottom: 20px;">
             <button id="practiceModeBtn" onclick="switchMode('practice')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">Practice Mode (5 Questions)</button>
             <button id="worksheetModeBtn" onclick="switchMode('worksheet')" style="background: #6c757d;">Worksheet Mode (10 Questions)</button>
+            <button id="unitsModeBtn" onclick="switchMode('units')" style="background: #6c757d;">Units Practice</button>
         </div>
 
         <div class="controls-row">
@@ -432,7 +476,7 @@
         let currentFormula = '';
         let timerInterval = null;
         let timerSeconds = 0;
-        let currentMode = 'practice'; // 'practice' or 'worksheet'
+        let currentMode = 'practice'; // 'practice', 'worksheet', or 'units'
         let stats = {
             questionsToday: 0,
             correctToday: 0
@@ -442,23 +486,40 @@
             currentMode = mode;
             const practiceBtn = document.getElementById('practiceModeBtn');
             const worksheetBtn = document.getElementById('worksheetModeBtn');
+            const unitsBtn = document.getElementById('unitsModeBtn');
             const generateBtn = document.getElementById('generateBtn');
             const printBtn = document.getElementById('printBtn');
             const timerCheckbox = document.getElementById('timerToggle');
             const timerCheckboxContainer = timerCheckbox.parentElement;
+            const formulaSelect = document.getElementById('formula').parentElement.parentElement;
+            const difficultySelect = document.getElementById('difficulty').parentElement.parentElement;
+
+            // Reset all buttons to gray
+            practiceBtn.style.background = '#6c757d';
+            worksheetBtn.style.background = '#6c757d';
+            unitsBtn.style.background = '#6c757d';
 
             if (mode === 'practice') {
                 practiceBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                worksheetBtn.style.background = '#6c757d';
                 generateBtn.textContent = 'Generate 5 Questions';
                 printBtn.style.display = 'inline-block';
                 timerCheckboxContainer.style.display = 'flex';
-            } else {
-                practiceBtn.style.background = '#6c757d';
+                formulaSelect.style.display = 'flex';
+                difficultySelect.style.display = 'flex';
+            } else if (mode === 'worksheet') {
                 worksheetBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 generateBtn.textContent = 'Generate 10 Questions';
                 printBtn.style.display = 'none';
                 timerCheckboxContainer.style.display = 'none';
+                formulaSelect.style.display = 'flex';
+                difficultySelect.style.display = 'flex';
+            } else if (mode === 'units') {
+                unitsBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                generateBtn.textContent = 'Generate 10 Units Questions';
+                printBtn.style.display = 'none';
+                timerCheckboxContainer.style.display = 'none';
+                formulaSelect.style.display = 'none';
+                difficultySelect.style.display = 'none';
             }
 
             // Clear any existing questions
@@ -466,6 +527,7 @@
             document.getElementById('questionsContainer').style.display = 'none';
             document.getElementById('checkBtnContainer').style.display = 'none';
             document.getElementById('scoreContainer').style.display = 'none';
+            document.getElementById('formulaRef').style.display = 'none';
             stopTimer();
         }
 
@@ -537,7 +599,7 @@
             const formulaSelect = document.getElementById('formula');
             currentFormula = formulaSelect.value;
 
-            if (!currentFormula) {
+            if (currentMode !== 'units' && !currentFormula) {
                 alert('Please select a formula first!');
                 return;
             }
@@ -552,7 +614,13 @@
             questionsContainer.innerHTML = '';
             scoreContainer.style.display = 'none';
 
-            // Show formula reference
+            if (currentMode === 'units') {
+                // Generate units matching questions
+                generateUnitsQuestions();
+                return;
+            }
+
+            // Show formula reference for practice/worksheet modes
             formulaRef.style.display = 'block';
             const formulaTexts = {
                 'fma': 'F = ma (Force = mass × acceleration)',
@@ -1138,10 +1206,131 @@
             return Number(num).toFixed(2);
         }
 
+        function generateUnitsQuestions() {
+            const unitsBank = [
+                { quantity: 'Force', unit: 'N', wrongUnits: ['kg', 'm/s', 'J'] },
+                { quantity: 'Mass', unit: 'kg', wrongUnits: ['N', 'm/s', 'g/cm³'] },
+                { quantity: 'Acceleration', unit: 'm/s²', wrongUnits: ['m/s', 'N', 'Hz'] },
+                { quantity: 'Velocity', unit: 'm/s', wrongUnits: ['m/s²', 'Hz', 'N'] },
+                { quantity: 'Distance', unit: 'm', wrongUnits: ['s', 'm/s', 'cm³'] },
+                { quantity: 'Time', unit: 's', wrongUnits: ['m', 'Hz', 'N'] },
+                { quantity: 'Work', unit: 'J', wrongUnits: ['W', 'N', 'kg'] },
+                { quantity: 'Power', unit: 'W', wrongUnits: ['J', 'N', 's'] },
+                { quantity: 'Momentum', unit: 'kg⋅m/s', wrongUnits: ['N', 'J', 'm/s'] },
+                { quantity: 'Kinetic Energy', unit: 'J', wrongUnits: ['W', 'N', 'kg'] },
+                { quantity: 'Potential Energy', unit: 'J', wrongUnits: ['W', 'N', 'kg'] },
+                { quantity: 'Density', unit: 'g/cm³', wrongUnits: ['kg', 'cm³', 'kg/m³'] },
+                { quantity: 'Frequency', unit: 'Hz', wrongUnits: ['s', 'm', 'm/s'] },
+                { quantity: 'Period', unit: 's', wrongUnits: ['Hz', 'm', 'N'] },
+                { quantity: 'Wavelength', unit: 'm', wrongUnits: ['Hz', 's', 'm/s'] },
+                { quantity: 'Wave Speed', unit: 'm/s', wrongUnits: ['Hz', 'm', 's'] }
+            ];
+
+            // Shuffle and take 10 questions
+            const shuffled = unitsBank.sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, 10);
+
+            currentQuestions = selected.map(q => ({
+                ...q,
+                userAnswer: null
+            }));
+
+            const questionsContainer = document.getElementById('questionsContainer');
+            const checkBtnContainer = document.getElementById('checkBtnContainer');
+
+            selected.forEach((q, i) => {
+                const allUnits = [q.unit, ...q.wrongUnits].sort(() => Math.random() - 0.5);
+                
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.innerHTML = `
+                    <div class="question-text">${i + 1}. What is the SI unit for ${q.quantity}?</div>
+                    <div class="units-choices" id="choices${i}">
+                        ${allUnits.map(unit => `
+                            <div class="unit-choice" onclick="selectUnit(${i}, '${unit}')" data-unit="${unit}">
+                                ${unit}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="feedback" id="feedback${i}"></div>
+                `;
+                questionsContainer.appendChild(questionDiv);
+            });
+
+            questionsContainer.style.display = 'block';
+            checkBtnContainer.style.display = 'block';
+        }
+
+        function selectUnit(questionIndex, selectedUnit) {
+            // Remove previous selection
+            const choices = document.querySelectorAll(`#choices${questionIndex} .unit-choice`);
+            choices.forEach(choice => choice.classList.remove('selected'));
+
+            // Mark new selection
+            const selectedChoice = document.querySelector(`#choices${questionIndex} .unit-choice[data-unit="${selectedUnit}"]`);
+            if (selectedChoice) {
+                selectedChoice.classList.add('selected');
+            }
+
+            // Store answer
+            currentQuestions[questionIndex].userAnswer = selectedUnit;
+        }
+
         function checkAnswers() {
             let correct = 0;
             stopTimer();
+
+            if (currentMode === 'units') {
+                // Check units questions
+                for (let i = 0; i < currentQuestions.length; i++) {
+                    const q = currentQuestions[i];
+                    const feedback = document.getElementById(`feedback${i}`);
+                    const choices = document.querySelectorAll(`#choices${i} .unit-choice`);
+
+                    stats.questionsToday++;
+
+                    if (!q.userAnswer) {
+                        feedback.className = 'feedback incorrect';
+                        feedback.textContent = 'Please select an answer';
+                    } else if (q.userAnswer === q.unit) {
+                        feedback.className = 'feedback correct';
+                        feedback.textContent = '✓ Correct!';
+                        correct++;
+                        stats.correctToday++;
+                        
+                        // Mark correct choice green
+                        choices.forEach(choice => {
+                            if (choice.dataset.unit === q.unit) {
+                                choice.classList.add('correct');
+                            }
+                        });
+                    } else {
+                        feedback.className = 'feedback incorrect';
+                        feedback.textContent = `✗ Incorrect. The correct unit is ${q.unit}`;
+                        
+                        // Mark wrong choice red, correct choice green
+                        choices.forEach(choice => {
+                            if (choice.dataset.unit === q.userAnswer) {
+                                choice.classList.add('incorrect');
+                            } else if (choice.dataset.unit === q.unit) {
+                                choice.classList.add('correct');
+                            }
+                        });
+                    }
+                }
+
+                saveStats();
+                updateStatsDisplay();
+
+                const scoreContainer = document.getElementById('scoreContainer');
+                const scoreElement = document.getElementById('score');
+                scoreElement.textContent = `${correct} / 10`;
+                scoreContainer.style.display = 'block';
+                scoreContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                return;
+            }
             
+            // Regular formula questions
             for (let i = 0; i < currentQuestions.length; i++) {
                 const userAnswer = parseFloat(document.getElementById(`answer${i}`).value);
                 const correctAnswer = currentQuestions[i].answer;
